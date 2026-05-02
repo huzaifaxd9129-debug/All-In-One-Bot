@@ -36,7 +36,6 @@ client.once("ready", () => {
     status: "online" // online, idle, dnd, invisible
   });
 });
-});
 
 // ================= WELCOME SYSTEM =================
 client.on("guildMemberAdd", async (member) => {
