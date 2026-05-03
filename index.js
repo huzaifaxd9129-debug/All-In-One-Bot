@@ -1,4 +1,4 @@
-// ULTRA PREMIUM HELP PANEL + DROPDOWN + ADVANCED TICKET UI
+/// ULTRA PREMIUM HELP PANEL + DROPDOWN + ADVANCED TICKET UI
 
 const {
   Client,
@@ -13,10 +13,28 @@ const {
   StringSelectMenuBuilder
 } = require("discord.js");
 
+const ms = require("ms");
+
 const client = new Client({ intents: Object.values(GatewayIntentBits) });
 
 const PREFIX = "+";
 const OWNER_ID = "1363540480662704248";
+
+// ================= DATA SYSTEMS =================
+const warns = new Map();
+const eco = new Map();
+
+function getUser(id) {
+  if (!eco.has(id)) {
+    eco.set(id, {
+      cash: 0,
+      bank: 0,
+      lastDaily: 0,
+      lastWeekly: 0
+    });
+  }
+  return eco.get(id);
+}
 
 // ================= READY =================
 client.on("ready", () => {
@@ -24,7 +42,7 @@ client.on("ready", () => {
   client.user.setActivity("👑 Made By Huztro", { type: ActivityType.Playing });
 });
 
-// ================= PREMIUM HELP PANEL =================
+// ================= HELP PANEL =================
 function helpPanel() {
   return new EmbedBuilder()
     .setColor("#0f172a")
@@ -43,24 +61,41 @@ function helpDropdown() {
       .setCustomId("help_menu")
       .setPlaceholder("Choose a category...")
       .addOptions([
-       [
-  { label: "Moderation", value: "ban, kick, unban, timeout, removetimeout, warn, unwarn, warnings, lock, unlock, slowmode, mute, unmute, nick, roleadd, roleremove, lock all, unlock all, purge", emoji: "🔐" },
-
-  { label: "Economy", value: "daily, bal, bank, weekly, work, beg, crime, gamble, slot, fish, hunt, mine, deposit, withdraw, pay, rob, rich", emoji: "💰" },
-
-  { label: "Invite Tracking System", value: "Invite Tracking System", emoji: "📧" },
-
-  { label: "Giveaway System", value: "Giveaway System, Start Command: +gstart time prize", emoji: "🎉" },
-
-  { label: "AntiLink System", value: "Blocks Every Links", emoji: "🔴" },
-
-  { label: "Staff Apply Panel", value: "You Can Apply For Staff Here: <#1500399315707887756>", emoji: "📨" }
-]
+        {
+          label: "Moderation",
+          value: "mod",
+          emoji: "🔐"
+        },
+        {
+          label: "Economy",
+          value: "eco",
+          emoji: "💰"
+        },
+        {
+          label: "Invite Tracking System",
+          value: "invite",
+          emoji: "📧"
+        },
+        {
+          label: "Giveaway System",
+          value: "giveaway",
+          emoji: "🎉"
+        },
+        {
+          label: "AntiLink System",
+          value: "antilink",
+          emoji: "🔴"
+        },
+        {
+          label: "Staff Apply Panel",
+          value: "apply",
+          emoji: "📨"
+        }
       ])
   );
 }
 
-// ================= COMMAND =================
+// ================= PREFIX CHECK =================
 client.on("messageCreate", async (msg) => {
   if (msg.author.bot) return;
 
@@ -70,10 +105,12 @@ client.on("messageCreate", async (msg) => {
   const isOwner = msg.author.id === OWNER_ID;
   if (!msg.content.startsWith(PREFIX) && !isOwner) return;
 
+  // HELP
   if (cmd === "help") {
     msg.reply({ embeds: [helpPanel()], components: [helpDropdown()] });
   }
 
+  // TICKET PANEL
   if (cmd === "ticket") {
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -87,8 +124,7 @@ client.on("messageCreate", async (msg) => {
         new EmbedBuilder()
           .setColor("#111827")
           .setTitle("Namix Support System")
-          .setDescription("Click the button below to open a ticket with our support team.\nWe will assist you as quickly as possible.")
-          .setThumbnail("https://i.imgur.com/AfFp7pu.png")
+          .setDescription("Click the button below to open a ticket.")
       ],
       components: [row]
     });
@@ -97,25 +133,39 @@ client.on("messageCreate", async (msg) => {
 
 // ================= INTERACTIONS =================
 client.on("interactionCreate", async (interaction) => {
+
+  // DROPDOWN
   if (interaction.isStringSelectMenu()) {
-    if (interaction.customId === "help_menu") {
-      const value = interaction.values[0];
+    const value = interaction.values[0];
 
-      if (value === "mod") {
-        interaction.reply({ content: "🔨 Ban, Kick, Warn, Mute, Lock, Purge...", ephemeral: true });
-      }
+    if (value === "mod") {
+      return interaction.reply({ content: "🔨 Ban, Kick, Warn, Mute, Lock, Purge...", ephemeral: true });
+    }
 
-      if (value === "eco") {
-        interaction.reply({ content: "💰 bal, daily, deposit, withdraw, rob...", ephemeral: true });
-      }
+    if (value === "eco") {
+      return interaction.reply({ content: "💰 bal, daily, deposit, withdraw, rob...", ephemeral: true });
+    }
 
-      if (value === "ticket") {
-        interaction.reply({ content: "🎫 Use ticket panel to create support tickets", ephemeral: true });
-      }
+    if (value === "invite") {
+      return interaction.reply({ content: "📧 Invite tracking system active", ephemeral: true });
+    }
+
+    if (value === "giveaway") {
+      return interaction.reply({ content: "🎉 Use +gstart time prize", ephemeral: true });
+    }
+
+    if (value === "antilink") {
+      return interaction.reply({ content: "🔴 Blocks all links", ephemeral: true });
+    }
+
+    if (value === "apply") {
+      return interaction.reply({ content: "📨 Use .apply to join staff", ephemeral: true });
     }
   }
 
+  // BUTTONS
   if (interaction.isButton()) {
+
     if (interaction.customId === "open_ticket") {
       const channel = await interaction.guild.channels.create({
         name: `ticket-${interaction.user.username}`,
@@ -143,78 +193,78 @@ client.on("interactionCreate", async (interaction) => {
         components: [closeRow]
       });
 
-      interaction.reply({ content: `Ticket created: ${channel}`, ephemeral: true });
+      return interaction.reply({ content: `Ticket created: ${channel}`, ephemeral: true });
     }
 
     if (interaction.customId === "close_ticket") {
-      interaction.channel.delete();
+      return interaction.channel.delete();
+    }
+
+    if (interaction.customId === "accept_app") {
+      return interaction.reply({ content: "✅ Accepted", ephemeral: true });
+    }
+
+    if (interaction.customId === "deny_app") {
+      return interaction.reply({ content: "❌ Denied", ephemeral: true });
     }
   }
 });
 
-// ================= EXTRA PREMIUM SYSTEMS (ADDED WITHOUT REMOVING ANYTHING) =================
-const ms = require("ms");
-
-// ================= ADVANCED MOD COMMANDS =================
+// ================= MOD COMMANDS =================
 client.on("messageCreate", async (msg) => {
   if (!msg.content.startsWith(PREFIX)) return;
+
   const args = msg.content.slice(PREFIX.length).split(/ +/);
   const cmd = args.shift()?.toLowerCase();
 
   if (cmd === "kick") {
-    if (!msg.member.permissions.has(PermissionsBitField.Flags.KickMembers)) return msg.reply("No permission");
     let user = msg.mentions.members.first();
     if (!user) return msg.reply("Mention user");
     user.kick();
-    msg.reply(`Kicked ${user.user.tag}`);
+    msg.reply("Kicked");
   }
 
   if (cmd === "ban") {
-    if (!msg.member.permissions.has(PermissionsBitField.Flags.BanMembers)) return msg.reply("No permission");
     let user = msg.mentions.members.first();
     if (!user) return msg.reply("Mention user");
     user.ban();
-    msg.reply(`Banned ${user.user.tag}`);
+    msg.reply("Banned");
   }
 
   if (cmd === "unban") {
     let id = args[0];
-    msg.guild.members.unban(id);
+    msg.guild.bans.remove(id);
     msg.reply("Unbanned");
   }
 
   if (cmd === "clear") {
-    if (!msg.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
     let amount = parseInt(args[0]);
     msg.channel.bulkDelete(amount);
-    msg.reply(`Deleted ${amount}`);
   }
 
   if (cmd === "timeout") {
     let user = msg.mentions.members.first();
     let time = args[1];
+    if (!user || !time) return;
     user.timeout(ms(time));
-    msg.reply("Timed out");
   }
 
   if (cmd === "removetimeout") {
     let user = msg.mentions.members.first();
+    if (!user) return;
     user.timeout(null);
-    msg.reply("Timeout removed");
   }
 
   if (cmd === "warn") {
     let user = msg.mentions.users.first();
     let count = warns.get(user.id) || 0;
     warns.set(user.id, count + 1);
-    msg.reply(`${user.tag} warned (${count + 1})`);
   }
 
   if (cmd === "unwarn") {
     let user = msg.mentions.users.first();
     let count = warns.get(user.id) || 0;
     warns.set(user.id, Math.max(0, count - 1));
-    msg.reply("Warn removed");
   }
 
   if (cmd === "warnings") {
@@ -224,248 +274,127 @@ client.on("messageCreate", async (msg) => {
 
   if (cmd === "lock") {
     msg.channel.permissionOverwrites.edit(msg.guild.id, { SendMessages: false });
-    msg.reply("Channel locked");
   }
 
   if (cmd === "unlock") {
     msg.channel.permissionOverwrites.edit(msg.guild.id, { SendMessages: true });
-    msg.reply("Channel unlocked");
   }
 
-  if (cmd === "serverinfo") {
-  const guild = msg.guild;
-
-  const embed = new EmbedBuilder()
-    .setColor("#6366f1")
-    .setTitle("🏠 Server Info")
-    .setThumbnail(guild.iconURL())
-    .addFields(
-      { name: "Name", value: guild.name, inline: true },
-      { name: "ID", value: guild.id, inline: true },
-      { name: "Owner", value: `<@${guild.ownerId}>`, inline: true },
-      { name: "Members", value: `${guild.memberCount}`, inline: true },
-      { name: "Roles", value: `${guild.roles.cache.size}`, inline: true },
-      { name: "Channels", value: `${guild.channels.cache.size}`, inline: true },
-      { name: "Created", value: `<t:${parseInt(guild.createdTimestamp/1000)}:R>` }
-    );
-
-  msg.reply({ embeds: [embed] });
-}
-
-  if (cmd === "userinfo") {
-  let user = msg.mentions.users.first() || msg.author;
-  let member = msg.guild.members.cache.get(user.id);
-
-  const embed = new EmbedBuilder()
-    .setColor("#3b82f6")
-    .setTitle("👤 User Info")
-    .setThumbnail(user.displayAvatarURL())
-    .addFields(
-      { name: "Username", value: user.tag, inline: true },
-      { name: "ID", value: user.id, inline: true },
-      { name: "Joined Server", value: `<t:${parseInt(member.joinedTimestamp/1000)}:R>`, inline: true },
-      { name: "Account Created", value: `<t:${parseInt(user.createdTimestamp/1000)}:R>`, inline: true },
-      { name: "Roles", value: member.roles.cache.map(r => r).join(", ").slice(0, 1000) || "None" }
-    );
-
-  msg.reply({ embeds: [embed] });
-}
-
-  if (cmd === "roles") {
-  const roles = msg.guild.roles.cache
-    .filter(r => r.id !== msg.guild.id)
-    .map(r => r)
-    .join(", ")
-    .slice(0, 2000);
-
-  msg.reply(`🎭 Roles:\n${roles}`);
-}
-
-  if (cmd === "roleinfo") {
-  let role = msg.mentions.roles.first();
-  if (!role) return msg.reply("Mention a role");
-
-  const embed = new EmbedBuilder()
-    .setColor(role.color || "#ffffff")
-    .setTitle("🎯 Role Info")
-    .addFields(
-      { name: "Name", value: role.name, inline: true },
-      { name: "ID", value: role.id, inline: true },
-      { name: "Members", value: `${role.members.size}`, inline: true },
-      { name: "Color", value: `${role.hexColor}`, inline: true },
-      { name: "Created", value: `<t:${parseInt(role.createdTimestamp/1000)}:R>` }
-    );
-
-  msg.reply({ embeds: [embed] });
-}
-  
-  if (cmd === "slowmode") {
-    let time = parseInt(args[0]);
-    msg.channel.setRateLimitPerUser(time);
-    msg.reply(`Slowmode ${time}s`);
-  }
-
-  // ================= EXTRA ECO =================
-  if (cmd === "fish") {
+  // ================= ECO =================
+  if (cmd === "bal") {
     const user = getUser(msg.author.id);
-    const earn = Math.floor(Math.random()*800);
-    user.cash += earn;
-    msg.reply(`🎣 You caught ${earn}`);
+    msg.reply(`Cash: ${user.cash} | Bank: ${user.bank}`);
+  }
+
+  if (cmd === "daily") {
+    const user = getUser(msg.author.id);
+    if (Date.now() - user.lastDaily < 86400000) return;
+    user.cash += 1000;
+    user.lastDaily = Date.now();
+  }
+
+  if (cmd === "weekly") {
+    const now = Date.now();
+    if (now - user.lastWeekly < 604800000)
+      return msg.reply("⏳ You already claimed weekly!");
+
+    const reward = Math.floor(Math.random() * 15000) + 5000;
+    user.cash += reward;
+    user.lastWeekly = now;
+
+    return msg.reply(`📅 Weekly reward: ${reward}`);
   }
 
   if (cmd === "work") {
-    const user = getUser(msg.author.id);
-    const earn = Math.floor(Math.random()*1000)+200;
+    const earn = Math.floor(Math.random() * 1000) + 200;
     user.cash += earn;
-    msg.reply(`💼 Earned ${earn}`);
+    return msg.reply(`💼 You worked and earned ${earn}`);
   }
 
-  if (cmd === "crime") {
-    const user = getUser(msg.author.id);
-    const earn = Math.random() < 0.5 ? 0 : Math.floor(Math.random()*2000);
+    if (cmd === "fish") {
+    const earn = Math.floor(Math.random() * 800);
     user.cash += earn;
-    msg.reply(`🕵️ Result: ${earn}`);
+    return msg.reply(`🎣 You caught fish worth ${earn}`);
   }
 
-  if (cmd === "pay") {
+    if (cmd === "hunt") {
+    const earn = Math.floor(Math.random() * 900);
+    user.cash += earn;
+    return msg.reply(`🏹 You hunted and earned ${earn}`);
+  }
+
+    if (cmd === "crime") {
+    const earn = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 2000);
+    user.cash += earn;
+    return msg.reply(`🕵️ Crime result: ${earn}`);
+  }
+
+    if (cmd === "pay") {
     const target = msg.mentions.users.first();
-    const amt = parseInt(args[1]);
-    const user = getUser(msg.author.id);
-    const rec = getUser(target.id);
+    const amount = parseInt(args[1]);
 
-    if (!target || !amt) return msg.reply("Usage: pay @user amount");
-    if (user.cash < amt) return msg.reply("Not enough");
+    if (!target) return msg.reply("Mention user");
+    if (!amount) return msg.reply("Enter amount");
 
-    user.cash -= amt;
-    rec.cash += amt;
-    msg.reply(`💸 Paid ${amt} to ${target.tag}`);
+    const receiver = getUser(target.id);
+
+    if (user.cash < amount) return msg.reply("Not enough money");
+
+    user.cash -= amount;
+    receiver.cash += amount;
+
+    return msg.reply(`💸 Sent ${amount} to ${target.tag}`);
   }
 
-   if (cmd === "daily") {
-    const user = getUser(msg.author.id);
-    const now = Date.now();
-    if (now - user.lastDaily < 86400000) return msg.reply("⏳ Already claimed");
+    if (cmd === "deposit") {
+    const amount = parseInt(args[0]);
+    if (!amount || user.cash < amount)
+      return msg.reply("Invalid amount");
 
-    const reward = Math.floor(Math.random()*5000)+1000;
-    user.cash += reward;
-    user.lastDaily = now;
-    msg.reply(`🎁 Daily: ${reward}`);
+    user.cash -= amount;
+    user.bank += amount;
+
+    return msg.reply(`🏦 Deposited ${amount}`);
   }
 
-   if (cmd === "weekly") {
-    const user = getUser(msg.author.id);
-    const now = Date.now();
-    if (!user.lastWeekly) user.lastWeekly = 0;
-    if (now - user.lastWeekly < 604800000) return msg.reply("⏳ Already claimed");
+    if (cmd === "withdraw") {
+    const amount = parseInt(args[0]);
+    if (!amount || user.bank < amount)
+      return msg.reply("Invalid amount");
 
-    const reward = Math.floor(Math.random()*10000)+3000;
-    user.cash += reward;
-    user.lastWeekly = now;
-    msg.reply(`📅 Weekly: ${reward}`);
-  }
-  
-  if (cmd === "hunt") {
-    const user = getUser(msg.author.id);
-    const earn = Math.floor(Math.random()*900);
-    user.cash += earn;
-    msg.reply(`🏹 You earned ${earn}`);
+    user.bank -= amount;
+    user.cash += amount;
+
+    return msg.reply(`💵 Withdrawn ${amount}`);
   }
 
-   if (cmd === "bank") {
-    const user = getUser(msg.author.id);
-    msg.reply(`🏦 Bank: ${user.bank}`);
+    if (cmd === "rob") {
+    const target = msg.mentions.users.first();
+    if (!target) return msg.reply("Mention user");
+
+    const victim = getUser(target.id);
+
+    if (victim.cash < 100) return msg.reply("Too poor to rob");
+
+    const steal = Math.floor(Math.random() * victim.cash / 2);
+
+    victim.cash -= steal;
+    user.cash += steal;
+
+    return msg.reply(`🪶 You robbed ${steal} from ${target.tag}`);
   }
 
   if (cmd === "rich") {
-    const sorted = [...eco.entries()].sort((a,b)=>b[1].cash-a[1].cash).slice(0,5);
-    msg.reply("💎 Top Users:
-" + sorted.map((u,i)=>`${i+1}. <@${u[0]}> - ${u[1].cash}`).join("
-"));
-  }
+    const sorted = [...eco.entries()]
+      .sort((a, b) => (b[1].cash + b[1].bank) - (a[1].cash + a[1].bank))
+      .slice(0, 5);
 
-  if (cmd === "bal") {
-  const user = getUser(msg.author.id);
-
-  const total = user.cash + user.bank;
-
-  const embed = new EmbedBuilder()
-    .setColor("#22c55e")
-    .setTitle("💰 Balance")
-    .setThumbnail(msg.author.displayAvatarURL())
-    .addFields(
-      { name: "💵 Cash", value: `${user.cash}`, inline: true },
-      { name: "🏦 Bank", value: `${user.bank}`, inline: true },
-      { name: "📊 Total", value: `${total}`, inline: true }
-    )
-    .setFooter({ text: `User: ${msg.author.tag}` });
-
-  msg.reply({ embeds: [embed] });
-}
-  
-  if (cmd === "gamble") {
-    const user = getUser(msg.author.id);
-    const bet = parseInt(args[0]);
-    if (user.cash < bet) return msg.reply("Not enough money");
-    if (Math.random() < 0.5) {
-      user.cash += bet;
-      msg.reply(`🎰 Won ${bet}`);
-    } else {
-      user.cash -= bet;
-      msg.reply(`❌ Lost ${bet}`);
-    }
-  }
-});
-
-// ================= STAFF APPLICATION SYSTEM =================
-client.on("messageCreate", async (msg) => {
-  if (msg.author.bot) return;
-  if (msg.content === ".apply") {
-    msg.reply("Check your DMs for application");
-
-    const questions = [
-      "Why do you want to be staff?",
-      "Your age?",
-      "Experience?",
-      "How active are you?",
-      "Why should we choose you?"
-    ];
-
-    const answers = [];
-    const dm = await msg.author.createDM();
-
-    for (let q of questions) {
-      await dm.send(q);
-      const collected = await dm.awaitMessages({ max: 1, time: 60000 });
-      answers.push(collected.first()?.content || "No answer");
-    }
-
-    const channel = client.channels.cache.get("1500169350307647488");
-
-    const embed = new EmbedBuilder()
-      .setTitle("📋 New Staff Application")
-      .setDescription(answers.map((a,i)=>`Q${i+1}: ${a}`).join("
-
-"))
-      .setFooter({ text: msg.author.tag });
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId("accept_app").setLabel("✅ Accept").setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId("deny_app").setLabel("❌ Deny").setStyle(ButtonStyle.Danger)
+    return msg.reply(
+      "💎 Top Rich Users:\n" +
+        sorted
+          .map((u, i) => `${i + 1}. <@${u[0]}> - ${u[1].cash + u[1].bank}`)
+          .join("\n")
     );
-
-    channel.send({ embeds: [embed], components: [row] });
-  }
-});
-
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isButton()) return;
-
-  if (interaction.customId === "accept_app") {
-    interaction.reply({ content: "✅ Application Accepted", ephemeral: true });
-  }
-
-  if (interaction.customId === "deny_app") {
-    interaction.reply({ content: "❌ Application Denied", ephemeral: true });
   }
 });
 
