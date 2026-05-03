@@ -21,7 +21,7 @@ const OWNER_ID = "1363540480662704248";
 // ================= READY =================
 client.on("ready", () => {
   console.log(`${client.user.tag} ONLINE`);
-  client.user.setActivity("👑 Made By Huztro", { type: ActivityType.Listing });
+  client.user.setActivity("👑 Made By Huztro", { type: ActivityType.Playing });
 });
 
 // ================= PREMIUM HELP PANEL =================
@@ -43,14 +43,19 @@ function helpDropdown() {
       .setCustomId("help_menu")
       .setPlaceholder("Choose a category...")
       .addOptions([
-        { label: "Moderation", value: "ban, kick, unban, timeout, removetimeout, warn, unwarn, 
-          warnings, lock, unlock slowmode, mute, unmute, nick, roleadd, roleremove, lock all, unlock all purge", emoji"🔐" },
-        { label: "Economy", value: "daily, bal, bank, weekly, work, beg, crime, gamble, slot, fish, hunt, mine, deposit, withdraw,
-          pay, rob, rich", emoji: "💰" },
-        { label: "Invite Tracking System", value: "Invite Tracking System", emoji: "📧" }
-        { label: "Giveaway System", value: "Giveaway System, Start Command: +gstart time prize", emoji: "🎉" }
-        { label: "AntiLink System", value: "Blocks Every Links", emoji: "🔴" }
-        { label: "Staff Apply Panel", value: "You Can Apply For Staff Here: <#channelid>", emoji: "📨" }
+       [
+  { label: "Moderation", value: "ban, kick, unban, timeout, removetimeout, warn, unwarn, warnings, lock, unlock, slowmode, mute, unmute, nick, roleadd, roleremove, lock all, unlock all, purge", emoji: "🔐" },
+
+  { label: "Economy", value: "daily, bal, bank, weekly, work, beg, crime, gamble, slot, fish, hunt, mine, deposit, withdraw, pay, rob, rich", emoji: "💰" },
+
+  { label: "Invite Tracking System", value: "Invite Tracking System", emoji: "📧" },
+
+  { label: "Giveaway System", value: "Giveaway System, Start Command: +gstart time prize", emoji: "🎉" },
+
+  { label: "AntiLink System", value: "Blocks Every Links", emoji: "🔴" },
+
+  { label: "Staff Apply Panel", value: "You Can Apply For Staff Here: <#1500399315707887756>", emoji: "📨" }
+]
       ])
   );
 }
