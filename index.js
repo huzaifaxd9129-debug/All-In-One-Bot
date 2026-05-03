@@ -15,7 +15,7 @@ const {
 
 const client = new Client({ intents: Object.values(GatewayIntentBits) });
 
-const PREFIX = ".";
+const PREFIX = "+";
 const OWNER_ID = "1363540480662704248";
 
 // ================= READY =================
